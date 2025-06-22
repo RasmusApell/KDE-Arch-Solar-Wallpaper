@@ -4,7 +4,7 @@
 LAT="56.706"  # Latitude
 LON="11.954"  # Longitude
 
-WALLPAPER_DIR="$HOME/Images/Wallpapers/solar-wallpapers/island"
+WALLPAPER_DIR="$HOME/Images/Wallpapers/solar-wallpapers/lakeside"
 CURRENT_TIME=$(date +%s)
 
 # Get today's sunrise and sunset times using python-astral
@@ -32,35 +32,43 @@ sunset = s['sunset']
 print(int(sunset.timestamp()))
 ")
 
-# Calculate transition periods (customized)
-SUNRISE_START=$((SUNRISE))  #  At sunrise
-SUNRISE_END=$(date -d "10:00" +%s)  # Fixed 10:00 AM sunrise end
-SUNSET_START=$((SUNSET - 7200))    # 2 hours before sunset
-SUNSET_END=$((SUNSET + 3600))      # 1 hour after sunset
+# Calculate transition periods
+SUNRISE_START=$((SUNRISE))  # At sunrise
+SUNSET_START=$((SUNSET))    # At sunset
 
-# Choose wallpaper based on solar time
-if [ $CURRENT_TIME -ge $SUNRISE_START ] && [ $CURRENT_TIME -lt $SUNRISE_END ]; then
-    # Sunrise period (1 hour window around sunrise)
-    WALLPAPER="$WALLPAPER_DIR/sunrise.jpg"
-    echo "Setting sunrise wallpaper"
-elif [ $CURRENT_TIME -ge $SUNRISE_END ] && [ $CURRENT_TIME -lt $SUNSET_START ]; then
-    # Day time (from end of sunrise to start of sunset)
-    WALLPAPER="$WALLPAPER_DIR/day.jpg"
-    echo "Setting day wallpaper"
-elif [ $CURRENT_TIME -ge $SUNSET_START ] && [ $CURRENT_TIME -lt $SUNSET_END ]; then
-    # Sunset period (1 hour window around sunset)
-    WALLPAPER="$WALLPAPER_DIR/sunset.jpg"
-    echo "Setting sunset wallpaper"
+# Calculate image number based on time (0-9)
+if [ $CURRENT_TIME -lt $SUNRISE_START ]; then
+    # Night time (before sunrise) - use image 0
+    IMAGE_NUM=0
+    PERIOD_NAME="night"
+elif [ $CURRENT_TIME -ge $SUNRISE_START ] && [ $CURRENT_TIME -lt $SUNSET_START ]; then
+    # Day period (from sunrise to sunset) - evenly distribute images 0-8
+    DAY_DURATION=$((SUNSET_START - SUNRISE_START))
+    ELAPSED=$((CURRENT_TIME - SUNRISE_START))
+    # Calculate progress as percentage (0-100)
+    PROGRESS=$((ELAPSED * 100 / DAY_DURATION))
+    # Map progress to image number (0 to 8)
+    IMAGE_NUM=$((PROGRESS * 8 / 100))
+    PERIOD_NAME="day"
 else
-    # Night time (from end of sunset to start of sunrise)
-    WALLPAPER="$WALLPAPER_DIR/night.jpg"
-    echo "Setting night wallpaper"
+    # Night time (after sunset) - use image 9
+    IMAGE_NUM=9
+    PERIOD_NAME="night"
 fi
+
+# Ensure image number is within bounds (0-9)
+if [ $IMAGE_NUM -lt 0 ]; then
+    IMAGE_NUM=0
+elif [ $IMAGE_NUM -gt 9 ]; then
+    IMAGE_NUM=9
+fi
+
+WALLPAPER="$WALLPAPER_DIR/$IMAGE_NUM.jpg"
 
 # Check if wallpaper file exists
 if [ ! -f "$WALLPAPER" ]; then
-    echo "Warning: Wallpaper file $WALLPAPER not found, using day as fallback"
-    WALLPAPER="$WALLPAPER_DIR/day.jpg"  # fallback
+    echo "Warning: Wallpaper file $WALLPAPER not found, using 0.jpg as fallback"
+    WALLPAPER="$WALLPAPER_DIR/0.jpg"  # fallback
 fi
 
 # Set wallpaper using KDE's method for all desktops and activities
@@ -85,6 +93,7 @@ for (i=0;i<allActivities.length;i++) {
 "
 
 # Debug info (optional - remove if you don't want logs)
+echo "Setting $PERIOD_NAME wallpaper (image $IMAGE_NUM)"
 echo "Current time: $(date)"
 echo "Sunrise: $(date -d @$SUNRISE)"
 echo "Sunset: $(date -d @$SUNSET)"
