@@ -6,8 +6,9 @@ A systemd service and timer that automatically changes your KDE Plasma wallpaper
 
 - Automatically changes wallpaper every 5 minutes
 - Uses solar time calculations for accurate day/night transitions
-- Supports 4 wallpaper states: sunrise, day, sunset, and night
-- Customizable transition periods with fixed 10:00 AM sunrise end
+- Supports 10 wallpaper states (0-9) for smooth transitions
+- Uses image 0 at sunrise start and image 9 at sunset start
+- Evenly distributes images 1-8 throughout the day
 - Works on all displays and activities in KDE Plasma 6
 - KDE Plasma 6 compatible
 
@@ -88,25 +89,37 @@ Create the wallpaper directory and add your images:
 mkdir -p ~/Images/Wallpapers/solar-wallpapers/island
 ```
 
-Add the following images to the directory:
-- `sunrise.jpg` - Wallpaper for sunrise period
-- `day.jpg` - Wallpaper for daytime
-- `sunset.jpg` - Wallpaper for sunset period
-- `night.jpg` - Wallpaper for nighttime
+Add the following images to the directory (numbered 0-9):
+- `0.jpg` - Night wallpaper (before sunrise and after sunset)
+- `1.jpg` - Early sunrise
+- `2.jpg` - Sunrise progression
+- `3.jpg` - Morning light
+- `4.jpg` - Mid-morning
+- `5.jpg` - Late morning
+- `6.jpg` - Early afternoon
+- `7.jpg` - Mid-afternoon
+- `8.jpg` - Late afternoon
+- `9.jpg` - Sunset/night
+
+**Image Sequence Logic:**
+- **Sunrise start**: Switches to image 0
+- **Throughout the day**: Evenly distributes images 1-8
+- **Sunset start**: Switches to image 9
+- **Night**: Uses image 9
 
 **Note:** The script expects wallpapers in a subdirectory (e.g., `island`, `beach`, etc.) within `solar-wallpapers/`. Update the `WALLPAPER_DIR` variable in the script to match your preferred subdirectory.
 
 ### 3. Customize Transition Times (Optional)
 
 The script uses these transition periods:
-- **Sunrise period**: From actual sunrise until 10:00 AM (fixed)
+- **Sunrise period**: From 1 hour before sunrise until 10:00 AM (fixed)
 - **Day period**: From 10:00 AM until 2 hours before sunset
 - **Sunset period**: 2 hours before sunset until 1 hour after sunset
 - **Night period**: 1 hour after sunset until sunrise
 
 You can modify these in the script:
 ```bash
-SUNRISE_START=$((SUNRISE))  # At sunrise
+SUNRISE_START=$((SUNRISE - 3600))  # 1 hour before sunrise
 SUNRISE_END=$(date -d "10:00" +%s)  # Fixed 10:00 AM sunrise end
 SUNSET_START=$((SUNSET - 7200))    # 2 hours before sunset
 SUNSET_END=$((SUNSET + 3600))      # 1 hour after sunset
@@ -127,7 +140,7 @@ Once installed and configured, the service will automatically:
 - Run every 5 minutes
 - Check the current time against sunrise/sunset
 - Change your wallpaper based on the solar period
-- Use customizable transition windows around sunrise/sunset
+- Use the 0-9 image sequence for smooth transitions
 - Apply changes to all displays and activities
 
 ## Troubleshooting
@@ -160,12 +173,16 @@ To test the script manually:
    sudo pacman -S qt5-tools
    ```
 
-2. **Wallpaper not changing** - Check:
+2. **"bc: command not found"** - The script now uses bash arithmetic and doesn't require `bc`.
+
+3. **Wallpaper not changing** - Check:
    - File paths are correct
-   - Wallpaper files exist and are readable
+   - Wallpaper files exist and are readable (0.jpg through 9.jpg)
    - KDE Plasma wallpaper plugin is set to "Image"
 
-3. **D-Bus errors** - Ensure you're running KDE Plasma and the script has proper environment variables.
+4. **D-Bus errors** - The script may show D-Bus errors but still function correctly. This is a known issue with KDE Plasma 6 API.
+
+5. **Wrong image sequence** - Ensure your images are numbered 0-9 and follow the intended progression from night to day to night.
 
 ## Uninstallation
 
@@ -181,4 +198,4 @@ systemctl --user daemon-reload
 
 ## License
 
-This project is open source. Feel free to modify and distribute according to your needs.
+This project is open source under the MIT license. Feel free to modify and distribute according to your needs.
