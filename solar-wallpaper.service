@@ -1,0 +1,7 @@
+[Unit]
+Description=Solar-based Dynamic Wallpaper Changer
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/solar-wallpaper.sh
+Environment=DISPLAY=:0
